@@ -34,50 +34,74 @@ class CartWidget extends StatelessWidget {
   }
 
   Future<void> _showDiscountDialog(BuildContext context) async {
-    final controller = TextEditingController(text: discount.toStringAsFixed(0));
-    
+    int selectedDiscount = discount.round();
+    // Ensure selectedDiscount is within the 0-15 range
+    if (selectedDiscount < 0 || selectedDiscount > 15) {
+      selectedDiscount = 0;
+    }
+
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2D2D3F),
-        title: const Text('Aplicar Descuento', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Ingrese el porcentaje de descuento:',
-              style: TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              style: const TextStyle(color: Colors.white),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                suffixText: '%',
-                suffixStyle: TextStyle(color: Colors.white70),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF2D2D3F),
+              title: const Text('Aplicar Descuento', style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Seleccione el porcentaje de descuento:',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    value: selectedDiscount,
+                    dropdownColor: const Color(0xFF2D2D3F),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white24),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.greenAccent),
+                      ),
+                    ),
+                    items: List.generate(16, (index) => index).map((value) {
+                      return DropdownMenuItem<int>(
+                        value: value,
+                        child: Text('$value%'),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedDiscount = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final value = double.tryParse(controller.text) ?? 0;
-              if (value >= 0 && value <= 100) {
-                onUpdateDiscount(value);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Aplicar'),
-          ),
-        ],
-      ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    onUpdateDiscount(selectedDiscount.toDouble());
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Aplicar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -245,23 +269,6 @@ class CartWidget extends StatelessWidget {
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               ),
                             ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white24),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Gen. factura electronica',
-                            style: TextStyle(color: Colors.white, fontSize: 12),
-                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),

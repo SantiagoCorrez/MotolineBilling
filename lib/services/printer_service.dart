@@ -5,39 +5,13 @@ import 'package:printing/printing.dart';
 import 'package:flutter/services.dart';
 
 class PrinterService {
-  /// Imprime una factura directamente en la impresora por defecto (POS)
+  /// Imprime una factura
   Future<void> printInvoice(Map<String, dynamic> invoiceData, String invoiceNumber) async {
     try {
       final pdf = await _generateInvoicePdf(invoiceData, invoiceNumber);
-      
-      // Buscar impresoras disponibles
-      final printers = await Printing.listPrinters();
-      Printer? targetPrinter;
-
-      // Intentar encontrar la impresora por defecto
-      // Si hay una marcada como default, usar esa.
-      // Si no, usar la primera disponible.
-      targetPrinter = printers.firstWhere(
-        (p) => p.isDefault,
-        orElse: () => printers.isNotEmpty ? printers.first :  const Printer(url: 'name'), 
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
       );
-
-      // Si no encontramos ninguna impresora real (caso raro si la lista no está vacía), 
-      // fallback a layoutPdf para que el usuario elija, 
-      // pero si asumimos que "POS" es default, intentamos imprimir directo.
-      
-      if (printers.isNotEmpty) {
-         await Printing.directPrintPdf(
-          printer: targetPrinter,
-          onLayout: (PdfPageFormat format) async => pdf.save(),
-        );
-      } else {
-         // Fallback si no hay impresoras detectadas: mostrar preview
-         await Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) async => pdf.save(),
-        );
-      }
-
     } catch (e) {
       print('Error al imprimir: $e');
       throw Exception('Error al conectar con la impresora: $e');
@@ -170,6 +144,15 @@ class PrinterService {
                     ),
                   ],
                 ),
+              ),
+              
+              pw.SizedBox(height: 8),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                   pw.Text('Metodo de pago:', style: const pw.TextStyle(fontSize: 10)),
+                   pw.Text('${invoiceData['paymentMethod'] ?? 'Efectivo'}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                ]
               ),
               
               pw.SizedBox(height: 16),

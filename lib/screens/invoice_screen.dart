@@ -23,6 +23,14 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
   
   bool _isProcessing = false;
   bool _electronicInvoice = true;
+  bool _simpleInvoice = false;
+  String _paymentMethod = 'Efectivo';
+
+  final List<String> _paymentMethods = [
+    'Efectivo',
+    'Tarjeta',
+    'Transferencia',
+  ];
 
   @override
   void dispose() {
@@ -43,10 +51,10 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
 
     try {
       final invoiceData = {
-        'customerName': _nameController.text,
-        'customerId': _idController.text,
-        'customerEmail': _emailController.text,
-        'customerCedula': _cedulaController.text,
+        'customerName': _simpleInvoice ? 'Consumidor Final' : _nameController.text,
+        'customerId': _simpleInvoice ? '222222222222' : _idController.text,
+        'customerEmail': _simpleInvoice ? 'consumidor@final.com' : _emailController.text,
+        'customerCelular': _simpleInvoice ? '0000000000' : _cedulaController.text,
         'items': cartItems.map((item) => {
           'productId': item.product.id,
           'productName': item.product.name,
@@ -58,6 +66,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
         'total': cartItems.fold<double>(0, (sum, item) => sum + item.subtotal),
         'totalWithDiscount': cartItems.fold<double>(0, (sum, item) => sum + item.subtotal) * (1 - discount / 100),
         'isElectronic': _electronicInvoice,
+        'paymentMethod': _paymentMethod,
         'timestamp': DateTime.now().toIso8601String(),
       };
 
@@ -197,81 +206,140 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Ingrese datos del cliente',
+                              'Tipo de Factura',
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 24),
-                            TextFormField(
-                              controller: _nameController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: 'Nombre completo',
-                                prefixIcon: Icon(Icons.person, color: Colors.white70),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Campo requerido';
-                                }
-                                return null;
-                              },
-                            ),
                             const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _idController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: 'Cédula/Nit',
-                                prefixIcon: Icon(Icons.badge, color: Colors.white70),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Campo requerido';
-                                }
-                                return null;
+                            SwitchListTile(
+                              title: const Text('Factura Simple', style: TextStyle(color: Colors.white)),
+                              subtitle: const Text('No requiere datos del cliente', style: TextStyle(color: Colors.white70)),
+                              value: _simpleInvoice,
+                              onChanged: (value) {
+                                setState(() {
+                                  _simpleInvoice = value;
+                                  if (_simpleInvoice) {
+                                    _electronicInvoice = false;
+                                  }
+                                });
                               },
+                              secondary: Icon(
+                                Icons.receipt_long,
+                                color: _simpleInvoice ? Colors.greenAccent : Colors.grey,
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _emailController,
-                              style: const TextStyle(color: Colors.white),
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'Correo',
-                                prefixIcon: Icon(Icons.email, color: Colors.white70),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Campo requerido';
-                                }
-                                if (!value.contains('@')) {
-                                  return 'Correo inválido';
-                                }
-                                return null;
+                            const Divider(color: Colors.white10),
+                            SwitchListTile(
+                              title: const Text('Generar Factura Electrónica DIAN', style: TextStyle(color: Colors.white)),
+                              subtitle: const Text('Desactivar para factura normal', style: TextStyle(color: Colors.white70)),
+                              value: _electronicInvoice,
+                              onChanged: _simpleInvoice ? null : (value) {
+                                setState(() => _electronicInvoice = value);
                               },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _cedulaController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: 'Cédula',
-                                prefixIcon: Icon(Icons.credit_card, color: Colors.white70),
+                              secondary: Icon(
+                                _electronicInvoice 
+                                    ? Icons.description 
+                                    : Icons.receipt,
+                                color: _simpleInvoice ? Colors.grey : Theme.of(context).primaryColor,
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Campo requerido';
-                                }
-                                return null;
-                              },
                             ),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 24),
+                    if (!_simpleInvoice) ...[
+                      Card(
+                        elevation: 4,
+                        color: const Color(0xFF2D2D3F),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: Colors.white10),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ingrese datos del cliente',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              TextFormField(
+                                controller: _nameController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  labelText: 'Nombre completo',
+                                  prefixIcon: Icon(Icons.person, color: Colors.white70),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Campo requerido';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _idController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  labelText: 'Cédula/Nit',
+                                  prefixIcon: Icon(Icons.badge, color: Colors.white70),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Campo requerido';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _emailController,
+                                style: const TextStyle(color: Colors.white),
+                                keyboardType: TextInputType.emailAddress,
+                                decoration: const InputDecoration(
+                                  labelText: 'Correo',
+                                  prefixIcon: Icon(Icons.email, color: Colors.white70),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Campo requerido';
+                                  }
+                                  if (!value.contains('@')) {
+                                    return 'Correo inválido';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _cedulaController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  labelText: 'Celular',
+                                  prefixIcon: Icon(Icons.phone, color: Colors.white70),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Campo requerido';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                     Card(
                       elevation: 4,
                       color: const Color(0xFF2D2D3F),
@@ -285,26 +353,38 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Tipo de Factura',
+                              'Método de Pago',
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
                             const SizedBox(height: 16),
-                            SwitchListTile(
-                              title: const Text('Generar Factura Electrónica DIAN', style: TextStyle(color: Colors.white)),
-                              subtitle: const Text('Desactivar para factura normal', style: TextStyle(color: Colors.white70)),
-                              value: _electronicInvoice,
-                              onChanged: (value) {
-                                setState(() => _electronicInvoice = value);
-                              },
-                              secondary: Icon(
-                                _electronicInvoice 
-                                    ? Icons.description 
-                                    : Icons.receipt,
-                                color: Theme.of(context).primaryColor,
+                            DropdownButtonFormField<String>(
+                              value: _paymentMethod,
+                              dropdownColor: const Color(0xFF2D2D3F),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                labelText: 'Seleccione método de pago',
+                                prefixIcon: Icon(Icons.payment, color: Colors.white70),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.white24),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.greenAccent),
+                                ),
                               ),
+                              items: _paymentMethods.map((method) {
+                                return DropdownMenuItem(
+                                  value: method,
+                                  child: Text(method),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _paymentMethod = value);
+                                }
+                              },
                             ),
                           ],
                         ),
